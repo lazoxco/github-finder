@@ -1,72 +1,95 @@
-import { createContext, useReducer } from "react";
-import githubReducer from "./GithubReducer";
+import { createContext, useReducer } from 'react';
+import githubReducer from './GithubReducer';
 
-const GithubContext = createContext()
-const GITHUB_URL = process.env.REACT_APP_GITHUB_URL
+const GithubContext = createContext();
+const GITHUB_URL = process.env.REACT_APP_GITHUB_URL;
 
 export const GithubProvider = ({ children }) => {
   const initialState = {
     users: [],
     user: {},
-    loading: false,
-  }
+    repos: [],
+    loading: false
+  };
 
-  const [state, dispatch] = useReducer(githubReducer, initialState)
+  const [state, dispatch] = useReducer(githubReducer, initialState);
 
   // Get search results
   const searchUsers = async (text) => {
-    setLoading()
+    setLoading();
 
     const params = new URLSearchParams({
       q: text
-    })
+    });
 
-    const response = await fetch(`${GITHUB_URL}/search/users?${params}`)
-    
-    const {items} = await response.json()
+    const response = await fetch(`${GITHUB_URL}/search/users?${params}`);
+
+    const { items } = await response.json();
 
     dispatch({
       type: 'GET_USERS',
-      payload: items,
-    })
-  }
+      payload: items
+    });
+  };
 
   // Get single user
   const getUser = async (login) => {
-    setLoading()
+    setLoading();
 
-    const response = await fetch(`${GITHUB_URL}/users/${login}`)
+    const response = await fetch(`${GITHUB_URL}/users/${login}`);
 
-    if(response.status === 404) {
-      window.location = '/notfound'
+    if (response.status === 404) {
+      window.location = '/notfound';
     } else {
-      const data = await response.json()
+      const data = await response.json();
 
       dispatch({
         type: 'GET_USER',
-        payload: data,
-      })
+        payload: data
+      });
     }
-    
-    
-  }
+  };
+
+  // Get user repos
+  const getUserRepos = async (login) => {
+    setLoading();
+
+    const params = new URLSearchParams({
+      sort: 'created',
+      per_page: 10
+    });
+
+    const response = await fetch(`${GITHUB_URL}/users/${login}/repos?${params}`);
+
+    const data = await response.json();
+
+    dispatch({
+      type: 'GET_REPOS',
+      payload: data
+    });
+  };
 
   // Clear users from state
-  const clearUsers  = () => dispatch({type: 'CLEAR_USERS'})
+  const clearUsers = () => dispatch({ type: 'CLEAR_USERS' });
 
   // Set loading
-  const setLoading = () => dispatch({type: 'SET_LOADING'})
+  const setLoading = () => dispatch({ type: 'SET_LOADING' });
 
-  return <GithubContext.Provider value={{
-    users: state.users,
-    user: state.user,
-    loading: state.loading,
-    searchUsers,
-    clearUsers,
-    getUser
-  }}>
-    {children}
-  </GithubContext.Provider>
-}
+  return (
+    <GithubContext.Provider
+      value={{
+        users: state.users,
+        user: state.user,
+        loading: state.loading,
+        repos: state.repos,
+        searchUsers,
+        clearUsers,
+        getUser,
+        getUserRepos
+      }}>
+      {children}
+    </GithubContext.Provider>
+  );
+};
 
-export default GithubContext
+export default GithubContext;
